@@ -12,7 +12,7 @@ pub struct Cli {
     #[arg(short, long, value_name = "FILE")]
     pub config: Option<PathBuf>,
 
-    /// Use hemingway mode (no backspace, default: FALSE)
+    /// Use hemingway mode (no backspace, default: false)
     #[arg(long)]
     pub hemingway: Option<bool>,
 

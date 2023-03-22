@@ -1,41 +1,66 @@
 use std::path::PathBuf;
 
+use crate::cli::Cli;
+
 #[derive(Debug)]
 pub struct Config {
     /// Using hemingway mode disables backspace and nav
-    writing_mode: WritingMode,
+    pub writing_mode: WritingMode,
 
-    // requestFullscreen: bool, // Ask for fullscreen when window opens
     /// Output name for file. Defaults to generated pattern
-    output_name: Option<String>,
+    pub output_name: PathBuf,
 
     /// Pattern to generate output name
     /// User may configure the default
-    output_pattern: String,
+    pub output_pattern: String,
 
     /// Directory to place output file
-    output_dir: PathBuf,
+    pub output_dir: PathBuf,
+
+    /// Whether or not to autosave in background
+    /// If error occurs during autosave, an attempt will be made to save to `<original_output_path>.bak`
+    pub use_autosave: bool,
+
+    /// Number of seconds between autosave backups
+    pub autosave_interval: u32,
+
+    /// Whether or not to show timer in editor
+    pub show_timer: bool,
+
+    /// Whether or not <TAB> keypress should enter spaces or '\t' character
+    /// default: true
+    pub use_hard_indent: bool,
 }
 // maybe instead of defining "default" fields, first set them to config, then overwrite them with
 // cli options
-
-impl Config {
-    /// Create Config from arguments and user config file
-    pub fn new(cli: &crate::cli::Cli) -> Config {
-        Config {
-            writing_mode: match cli.hemingway.unwrap_or(false) {
-                true => WritingMode::Hemingway,
-                false => WritingMode::Regular,
-            },
-            output_name: Some(String::from("test.md")),
-            output_pattern: String::from("{date}.md"),
-            output_dir: PathBuf::from("./"),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum WritingMode {
     Regular,
     Hemingway, // Disable backspace and navigation
+}
+
+impl Config {
+    /// Create Config from arguments and user config file
+    pub fn new(cli: &Cli) -> Config {
+        // TODO: Check for config file
+        // Use XDG_CONFIG_HOME
+        // let configPath = cli.config.unwrap_or(PathBuf::from(value))
+
+        // TODO: Generate output_name based on pattern, config, args
+
+        Config {
+            writing_mode: match cli.hemingway.unwrap_or(false) {
+                true => WritingMode::Hemingway,
+                false => WritingMode::Regular,
+            },
+            output_name: "test.md".into(),
+            output_pattern: String::from("{date}.md"),
+            output_dir: "./".into(),
+            use_autosave: true,
+            autosave_interval: 15,
+            show_timer: true,
+            use_hard_indent: true,
+        }
+    }
 }
