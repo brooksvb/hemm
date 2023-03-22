@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+/// Struct representing options and arguments that user inputs to the program.
 ///
+/// Powered by clap crate annotations
 #[derive(Parser, Debug)]
 pub struct Cli {
     /// Optional output file path

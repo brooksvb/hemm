@@ -1,3 +1,9 @@
+//! # hemm Library
+//!
+//! Provides the functions to power the hemm text editor.
+//!
+//!
+
 pub mod autosave;
 pub mod buffer;
 pub mod cli;

@@ -1,3 +1,11 @@
+//! # hemm
+//!
+//! A text editor
+//!
+//! ## Usage
+//! `hemm <output_filename>`
+//! `hemm -h`
+
 use std::error::Error;
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};

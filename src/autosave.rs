@@ -6,8 +6,8 @@ use std::time::Duration;
 use crate::buffer::Buffer;
 use crate::config::Config;
 
-// String for now
-// Need read-locked reference to data
+/// Starts autosave thread.
+/// Sleeps between loops by user-configurable amount.
 pub fn start_autosave_thread(
     buffer: Arc<Mutex<Buffer>>,
     running_handle: Arc<AtomicBool>,

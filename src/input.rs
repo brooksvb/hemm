@@ -7,9 +7,16 @@ use crossterm::event::{Event, KeyCode};
 use crate::buffer::Buffer;
 use crate::config::Config;
 
-// String for now
-// Need a write-lock on buffer
-// Need reference to input, buffer, stop_handle, config
+/// The user input is handled on its own thread in order to prevent the possibility
+/// of an input event being missed between loops.
+
+/// Starts thread that captures terminal input events
+/// Currently no sleep between loops
+///
+/// This thread is responsible for giving the user a way to end
+/// the program, otherwise, it won't end otherwise. The terminal being in raw mode prevents the
+/// terminal from sending a SIGINT event because the ctrl+c keystroke will be captured
+/// Maybe there is a way to propogate the event to the terminal to let it handle the signaling?
 pub fn start_input_thread(
     buffer_handle: Arc<Mutex<Buffer>>,
     running_handle: Arc<AtomicBool>,
