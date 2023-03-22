@@ -1,10 +1,16 @@
-use std::io::{stdout, Write};
+use std::error::Error;
+use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
 use clap::Parser;
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, is_raw_mode_enabled, EnterAlternateScreen,
+    LeaveAlternateScreen,
+};
 use hemm::autosave::start_autosave_thread;
 use hemm::buffer::Buffer;
 use hemm::cli::Cli;
@@ -12,9 +18,8 @@ use hemm::config::Config;
 use hemm::input::start_input_thread;
 use hemm::timer::start_timer_thread;
 use tui::{backend::CrosstermBackend, layout::Rect, Terminal};
-use tui_textarea::TextArea;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     dbg!(&cli);
 
@@ -22,21 +27,34 @@ fn main() {
     let config = Config::new(&cli);
     dbg!(&config);
 
-    run(&config);
+    run(&config)?;
+
+    Ok(())
 }
 
-fn run(config: &Config) {
+fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     // Shared variables
     let buffer = Arc::new(Mutex::new(Buffer::new(config).unwrap()));
     let running = Arc::new(AtomicBool::new(true));
     let elapsed_time = Arc::new(Mutex::new(Duration::default()));
 
     // Prepare interface
+    let mut stdout = io::stdout();
+    if !is_raw_mode_enabled()? {
+        enable_raw_mode()?;
+        crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    }
+    let backend = CrosstermBackend::new(stdout);
+    let mut term = Terminal::new(backend)?;
 
     // Start background backup thread
     let backup_thread: Option<JoinHandle<()>>;
     if config.use_autosave {
-        backup_thread = Some(start_autosave_thread(Arc::clone(&buffer), &config));
+        backup_thread = Some(start_autosave_thread(
+            Arc::clone(&buffer),
+            Arc::clone(&running),
+            &config,
+        ));
     } else {
         backup_thread = None;
     }
@@ -44,7 +62,11 @@ fn run(config: &Config) {
     // Start timer
     let timer_thread: Option<JoinHandle<()>>;
     if config.show_timer {
-        timer_thread = Some(start_timer_thread(Arc::clone(&elapsed_time), &config));
+        timer_thread = Some(start_timer_thread(
+            Arc::clone(&elapsed_time),
+            Arc::clone(&running),
+            &config,
+        ));
     } else {
         timer_thread = None;
     }
@@ -55,6 +77,12 @@ fn run(config: &Config) {
     // Main render loop
     while running.load(Ordering::SeqCst) {
         // TODO
+        term.draw(|f| {
+            let buffer = buffer.lock().unwrap();
+            let buffer_widget = buffer.textarea.widget();
+            let rectangle = Rect::new(0, 0, f.size().width, f.size().height);
+            f.render_widget(buffer_widget, rectangle);
+        });
     }
 
     // TODO: Join threads
@@ -68,4 +96,16 @@ fn run(config: &Config) {
 
     // Final save
     // Cleanup bak files
+
+    // Terminal cleanup
+    term.show_cursor().unwrap();
+    disable_raw_mode().unwrap();
+    crossterm::execute!(
+        term.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )
+    .unwrap();
+
+    Ok(())
 }
