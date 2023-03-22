@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 
 use crossterm::event::{Event, KeyCode};
@@ -20,6 +20,7 @@ use crate::config::Config;
 pub fn start_input_thread(
     buffer_handle: Arc<Mutex<Buffer>>,
     running_handle: Arc<AtomicBool>,
+    condvar: Arc<Condvar>,
     _config: &Config,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
@@ -43,6 +44,8 @@ pub fn start_input_thread(
                             KeyCode::Esc => {
                                 // Exit the program
                                 running_handle.store(false, Ordering::SeqCst);
+                                // Wake up all sleeping threads
+                                condvar.notify_all();
                                 // TODO: Display message for user
                             }
                             _ => {}

@@ -31,8 +31,6 @@ pub struct Config {
     /// default: true
     pub use_hard_indent: bool,
 }
-// maybe instead of defining "default" fields, first set them to config, then overwrite them with
-// cli options
 
 #[derive(Debug)]
 pub enum WritingMode {
@@ -40,27 +38,53 @@ pub enum WritingMode {
     Hemingway, // Disable backspace and navigation
 }
 
-impl Config {
-    /// Create Config from arguments and user config file
-    pub fn new(cli: &Cli) -> Config {
-        // TODO: Check for config file
-        // Use XDG_CONFIG_HOME
-        // let configPath = cli.config.unwrap_or(PathBuf::from(value))
-
-        // TODO: Generate output_name based on pattern, config, args
-
-        Config {
-            writing_mode: match cli.hemingway.unwrap_or(false) {
-                true => WritingMode::Hemingway,
-                false => WritingMode::Regular,
-            },
-            output_name: "test.md".into(),
-            output_pattern: String::from("{date}.md"),
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            writing_mode: WritingMode::Regular,
+            output_name: "out.txt".into(),
+            output_pattern: "{date}.txt".into(),
             output_dir: "./".into(),
-            use_autosave: false,
+            use_autosave: true,
             autosave_interval: 15,
             show_timer: false,
             use_hard_indent: true,
+        }
+    }
+}
+
+impl Config {
+    /// Create Config from arguments and user config file
+    pub fn new(cli: &Cli) -> Config {
+        let default = Self::default();
+
+        // First, a user config file is checked for config values.
+        // TODO: Check for config file. Use confy
+        // Use XDG_CONFIG_HOME
+        let default_config_path = "$XDG_CONFIG_HOME/hemm/hemm.conf";
+        // let configPath = cli.config.unwrap_or(PathBuf::from(value))
+
+        // TODO: Generate output_name based on pattern, config, args
+        let output_name = default.output_name;
+
+        // Second, any command-line arguments override previously found values.
+        // Last, any config values that were not found, will be set to defaults
+        Config {
+            writing_mode: if let Some(writing_mode) = cli.hemingway {
+                match writing_mode {
+                    true => WritingMode::Hemingway,
+                    false => WritingMode::Regular,
+                }
+            } else {
+                default.writing_mode
+            },
+            output_name,
+            output_dir: cli.directory.clone().unwrap_or(default.output_dir),
+            use_autosave: cli.autosave.unwrap_or(default.use_autosave),
+            autosave_interval: cli.autosave_interval.unwrap_or(default.autosave_interval),
+            show_timer: cli.timer.unwrap_or(default.show_timer),
+            use_hard_indent: cli.use_hard_indent.unwrap_or(default.use_hard_indent),
+            ..default
         }
     }
 }

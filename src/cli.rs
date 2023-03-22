@@ -21,4 +21,26 @@ pub struct Cli {
     /// Pattern to use when generating output name
     #[arg(short, long)]
     pub output_pattern: Option<String>,
+
+    /// Output directory for file if full output path not given
+    /// default: ./
+    #[arg(short, long)]
+    pub directory: Option<PathBuf>,
+
+    /// Enable autosave in background
+    /// default: true
+    #[arg(short, long)]
+    pub autosave: Option<bool>,
+
+    /// Interval of autosave, in seconds
+    #[arg(long = "interval", value_name = "INTERVAL")]
+    pub autosave_interval: Option<u32>,
+
+    /// Enable timer display
+    #[arg(short, long)]
+    pub timer: Option<bool>,
+
+    /// Use '\t' for tab keypress
+    #[arg(short, long)]
+    pub use_hard_indent: Option<bool>,
 }

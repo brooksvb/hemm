@@ -9,7 +9,7 @@
 use std::error::Error;
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -46,6 +46,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     let buffer = Arc::new(Mutex::new(Buffer::new(config).unwrap()));
     // When this becomes false, all threads and program should exit
     let running = Arc::new(AtomicBool::new(true));
+    let condvar = Arc::new(Condvar::new());
     let elapsed_time = Arc::new(Mutex::new(Duration::default()));
 
     let r = Arc::clone(&running);
@@ -71,6 +72,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
         backup_thread = Some(start_autosave_thread(
             Arc::clone(&buffer),
             Arc::clone(&running),
+            Arc::clone(&condvar),
             &config,
         ));
     } else {
@@ -83,6 +85,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
         timer_thread = Some(start_timer_thread(
             Arc::clone(&elapsed_time),
             Arc::clone(&running),
+            Arc::clone(&condvar),
             &config,
         ));
     } else {
@@ -90,7 +93,12 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     }
 
     // Start input thread
-    let input_thread = start_input_thread(Arc::clone(&buffer), Arc::clone(&running), &config);
+    let input_thread = start_input_thread(
+        Arc::clone(&buffer),
+        Arc::clone(&running),
+        Arc::clone(&condvar),
+        &config,
+    );
 
     // Main render loop
     while running.load(Ordering::SeqCst) {
@@ -134,5 +142,9 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     .unwrap();
 
     dbg!(&buffer);
+
+    // Final output for user
+    println!("Saved file to {:?}", config.output_name);
+
     Ok(())
 }
