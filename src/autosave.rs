@@ -17,6 +17,8 @@ pub fn start_autosave_thread(
     thread::spawn(move || {
         while running_handle.load(Ordering::SeqCst) {
             // Write buffer to file
+            let mut buffer = buffer.lock().unwrap();
+            buffer.save().unwrap();
 
             // Sleep depending on config
             // There are other functions I can use in case I want to support decimal precision

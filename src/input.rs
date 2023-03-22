@@ -13,7 +13,7 @@ use crate::config::Config;
 pub fn start_input_thread(
     buffer_handle: Arc<Mutex<Buffer>>,
     running_handle: Arc<AtomicBool>,
-    config: &Config,
+    _config: &Config,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         while running_handle.load(Ordering::SeqCst) {
@@ -31,11 +31,12 @@ pub fn start_input_thread(
                                 buffer.textarea.delete_char();
                             }
                             KeyCode::Enter => {
-                                buffer.textarea.insert_char('\n');
+                                buffer.textarea.insert_newline();
                             }
                             KeyCode::Esc => {
                                 // Exit the program
                                 running_handle.store(false, Ordering::SeqCst);
+                                // TODO: Display message for user
                             }
                             _ => {}
                         }

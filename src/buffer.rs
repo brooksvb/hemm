@@ -1,4 +1,5 @@
 use std::{
+    fmt::Debug,
     fs,
     io::{self, Write},
     path::PathBuf,
@@ -20,9 +21,21 @@ pub struct Buffer {
     /// Path of output file
     path: PathBuf,
     /// Modified since last save
+    // FIXME: modified is not updated
     modified: bool,
     /// Whether or not file existed at beginning of program start
     file_already_existed: bool,
+}
+
+impl Debug for Buffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Buffer")
+            .field("textarea", &self.textarea.lines())
+            .field("path", &self.path)
+            .field("modified", &self.modified)
+            .field("file_already_existed", &self.file_already_existed)
+            .finish()
+    }
 }
 
 impl Buffer {
@@ -57,9 +70,10 @@ impl Buffer {
 
     /// If modified, write file to output path
     pub fn save(&mut self) -> io::Result<()> {
-        if !self.modified {
-            return Ok(());
-        }
+        // FIXME: modified is not updated
+        // if !self.modified {
+        //     return Ok(());
+        // }
         // TODO: Write-Failsafe: If any error occurs, attempt to write to .bak file
         let mut f = fs::File::create(&self.path)?;
         for line in self.textarea.lines() {

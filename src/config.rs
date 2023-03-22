@@ -57,9 +57,9 @@ impl Config {
             output_name: "test.md".into(),
             output_pattern: String::from("{date}.md"),
             output_dir: "./".into(),
-            use_autosave: true,
+            use_autosave: false,
             autosave_interval: 15,
-            show_timer: true,
+            show_timer: false,
             use_hard_indent: true,
         }
     }

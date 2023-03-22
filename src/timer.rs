@@ -8,7 +8,7 @@ use crate::config::Config;
 pub fn start_timer_thread(
     elapsed_time_handle: Arc<Mutex<Duration>>,
     running_handle: Arc<AtomicBool>,
-    config: &Config,
+    _config: &Config,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let start_time = Instant::now();

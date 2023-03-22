@@ -2,6 +2,7 @@ use std::error::Error;
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -35,8 +36,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     // Shared variables
     let buffer = Arc::new(Mutex::new(Buffer::new(config).unwrap()));
+    // When this becomes false, all threads and program should exit
     let running = Arc::new(AtomicBool::new(true));
     let elapsed_time = Arc::new(Mutex::new(Duration::default()));
+
+    let r = Arc::clone(&running);
+    // Set up SIGINT handler
+    // FIXME: Seems like raw mode prevents SIGINT signal from generating
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl-C handler");
 
     // Prepare interface
     let mut stdout = io::stdout();
@@ -76,13 +86,16 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
 
     // Main render loop
     while running.load(Ordering::SeqCst) {
-        // TODO
         term.draw(|f| {
             let buffer = buffer.lock().unwrap();
             let buffer_widget = buffer.textarea.widget();
             let rectangle = Rect::new(0, 0, f.size().width, f.size().height);
             f.render_widget(buffer_widget, rectangle);
-        });
+        })
+        .unwrap();
+
+        // TUI refresh rate
+        thread::sleep(Duration::from_millis(50));
     }
 
     // TODO: Join threads
@@ -95,7 +108,12 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     input_thread.join().unwrap();
 
     // Final save
+    let mut buffer = buffer.lock().unwrap();
+    dbg!(&buffer);
+    buffer.save()?;
+
     // Cleanup bak files
+    // TODO
 
     // Terminal cleanup
     term.show_cursor().unwrap();
@@ -107,5 +125,6 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     )
     .unwrap();
 
+    dbg!(&buffer);
     Ok(())
 }
