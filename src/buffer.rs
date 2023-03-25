@@ -5,6 +5,7 @@ use std::{
     path::PathBuf,
 };
 
+use tui::style::Style;
 use tui_textarea::TextArea;
 
 use crate::config::Config;
@@ -18,8 +19,10 @@ pub struct Buffer {
     // Not 100% understanding the full reasons yet or a better alternative solution
     /// TextArea tui widget
     pub textarea: TextArea<'static>,
-    /// Path of output file
+    /// Path to file output
     path: PathBuf,
+    /// Path to backup file
+    back_path: PathBuf,
     /// Modified since last save
     // FIXME: modified is not updated
     modified: bool,
@@ -31,7 +34,6 @@ impl Debug for Buffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
             .field("textarea", &self.textarea.lines())
-            .field("path", &self.path)
             .field("modified", &self.modified)
             .field("file_already_existed", &self.file_already_existed)
             .finish()
@@ -40,8 +42,7 @@ impl Debug for Buffer {
 
 impl Buffer {
     pub fn new(config: &Config) -> io::Result<Self> {
-        // TODO: Generate path
-        let path = config.output_name.clone();
+        let path = config.get_output_path();
 
         let file_already_existed = path.exists();
         let mut textarea = if let Ok(md) = path.metadata() {
@@ -59,28 +60,40 @@ impl Buffer {
             TextArea::default() // File does not exist
         };
         textarea.set_hard_tab_indent(config.use_hard_indent);
-        // textarea.set_line_number_style(Style::default().fg(Color::DarkGray));
+        // Remove default underline style from active line
+        textarea.set_cursor_line_style(Style::default());
         Ok(Self {
             textarea,
-            path,
+            path: config.get_output_path(),
+            back_path: config.get_bak_path(),
             modified: false,
             file_already_existed,
         })
     }
 
-    /// If modified, write file to output path
-    pub fn save(&mut self) -> io::Result<()> {
-        // FIXME: modified is not updated
-        // if !self.modified {
-        //     return Ok(());
-        // }
-        // TODO: Write-Failsafe: If any error occurs, attempt to write to .bak file
-        let mut f = fs::File::create(&self.path)?;
-        for line in self.textarea.lines() {
-            f.write_all(line.as_bytes())?;
-            f.write_all(b"\n")?;
-        }
-        self.modified = false;
+    /// Save to backup filepath
+    pub fn save_backup(&mut self) -> io::Result<()> {
+        save_buffer(&self, &self.back_path)?;
         Ok(())
     }
+
+    /// Save to final filepath
+    pub fn save(&mut self) -> io::Result<()> {
+        save_buffer(&self, &self.path)?;
+        Ok(())
+    }
+}
+
+fn save_buffer(buffer: &Buffer, path: &PathBuf) -> io::Result<()> {
+    // FIXME: modified is not updated
+    // if !self.modified {
+    //     return Ok(());
+    //
+    // TODO: Write-Failsafe: If any error occurs, attempt to write to .bak file
+    let mut f = fs::File::create(path)?;
+    for line in buffer.textarea.lines() {
+        f.write_all(line.as_bytes())?;
+        f.write_all(b"\n")?;
+    }
+    Ok(())
 }

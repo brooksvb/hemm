@@ -7,8 +7,9 @@ pub struct Config {
     /// Using hemingway mode disables backspace and nav
     pub writing_mode: WritingMode,
 
-    /// Output name for file. Defaults to generated pattern
-    pub output_name: PathBuf,
+    /// Output name for file
+    /// If None, output path will be generated from pattern
+    output_name: Option<PathBuf>,
 
     /// Pattern to generate output name
     /// User may configure the default
@@ -32,7 +33,7 @@ pub struct Config {
     pub use_hard_indent: bool,
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub enum WritingMode {
     Regular,
     Hemingway, // Disable backspace and navigation
@@ -42,7 +43,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             writing_mode: WritingMode::Regular,
-            output_name: "out.txt".into(),
+            output_name: Some("out.txt".into()),
             output_pattern: "{date}.txt".into(),
             output_dir: "./".into(),
             use_autosave: true,
@@ -61,14 +62,15 @@ impl Config {
         // First, a user config file is checked for config values.
         // TODO: Check for config file. Use confy
         // Use XDG_CONFIG_HOME
-        let default_config_path = "$XDG_CONFIG_HOME/hemm/hemm.conf";
-        // let configPath = cli.config.unwrap_or(PathBuf::from(value))
-
-        // TODO: Generate output_name based on pattern, config, args
-        let output_name = default.output_name;
+        let default_config_path = PathBuf::from("$XDG_CONFIG_HOME/hemm/hemm.conf");
+        let config_path = if let Some(config) = cli.config.clone() {
+            config
+        } else {
+            default_config_path
+        };
 
         // Second, any command-line arguments override previously found values.
-        // Last, any config values that were not found, will be set to defaults
+        // TODO: Last, any config values that were not found in either, will be set to defaults
         Config {
             writing_mode: if let Some(writing_mode) = cli.hemingway {
                 match writing_mode {
@@ -78,7 +80,7 @@ impl Config {
             } else {
                 default.writing_mode
             },
-            output_name,
+            output_name: cli.path.clone(),
             output_dir: cli.directory.clone().unwrap_or(default.output_dir),
             use_autosave: cli.autosave.unwrap_or(default.use_autosave),
             autosave_interval: cli.autosave_interval.unwrap_or(default.autosave_interval),
@@ -87,4 +89,51 @@ impl Config {
             ..default
         }
     }
+
+    /// Return output path based on config
+    pub fn get_output_path(&self) -> PathBuf {
+        if let Some(output_name) = self.output_name.clone() {
+            // If absolute file path is given, it doesn't matter what directory is set to
+            if output_name.is_absolute() {
+                return output_name;
+            }
+            // Merge directory with output name
+            let mut path = self.output_dir.clone();
+            path.push(output_name);
+            return path;
+        }
+
+        let resolved_pattern = resolve_pattern(&self.output_pattern).unwrap();
+        let mut output_path = self.output_dir.clone();
+        output_path.push(PathBuf::from(resolved_pattern));
+        output_path
+    }
+
+    /// Return path of backup file
+    pub fn get_bak_path(&self) -> PathBuf {
+        let output_path = self.get_output_path();
+        let parent_dir = output_path.parent().unwrap();
+        let file_name = output_path.file_name().unwrap();
+        // to_string_lossy will drop invalid characters
+        let bak_file_name = file_name.to_string_lossy().to_string() + ".bak";
+        parent_dir.join(bak_file_name)
+    }
 }
+
+fn resolve_pattern(pattern: &String) -> Result<String, ConfigError> {
+    // TODO: Resolve pattern
+    Ok("out.txt".into())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ConfigError {
+    message: String,
+}
+
+impl std::fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for ConfigError {}

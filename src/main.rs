@@ -10,11 +10,11 @@ use std::error::Error;
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
-use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
 use clap::Parser;
+use crossterm::cursor::SetCursorStyle;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, is_raw_mode_enabled, EnterAlternateScreen,
@@ -49,19 +49,23 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     let condvar = Arc::new(Condvar::new());
     let elapsed_time = Arc::new(Mutex::new(Duration::default()));
 
-    let r = Arc::clone(&running);
     // Set up SIGINT handler
-    // FIXME: Seems like raw mode prevents SIGINT signal from generating
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::SeqCst);
-    })
-    .expect("Error setting Ctrl-C handler");
+    {
+        let r = Arc::clone(&running);
+        let cond = Arc::clone(&condvar);
+        // FIXME: Seems like raw mode prevents SIGINT signal from generating
+        ctrlc::set_handler(move || {
+            r.store(false, Ordering::SeqCst);
+            cond.notify_all();
+        })
+        .expect("Error setting Ctrl-C handler");
+    }
 
     // Prepare interface
     let mut stdout = io::stdout();
     if !is_raw_mode_enabled()? {
         enable_raw_mode()?;
-        crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+        crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture,)?;
     }
     let backend = CrosstermBackend::new(stdout);
     let mut term = Terminal::new(backend)?;
@@ -100,21 +104,37 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
         &config,
     );
 
+    // FIXME: Cursor style does not change
+    crossterm::execute!(term.backend_mut(), SetCursorStyle::SteadyBar).unwrap();
+
     // Main render loop
+    let mutex = Mutex::new(());
     while running.load(Ordering::SeqCst) {
         term.draw(|f| {
             let buffer = buffer.lock().unwrap();
             let buffer_widget = buffer.textarea.widget();
             let rectangle = Rect::new(0, 0, f.size().width, f.size().height);
             f.render_widget(buffer_widget, rectangle);
+
+            // TODO: Render message line
+            // let chunks = layout.split(f.size());
+            //
+            // if search_height > 0 {
+            //     f.render_widget(self.search.textarea.widget(), chunks[0]);
+            // }
+            //
+            // let textarea = &buffer.textarea;
+            // let widget = textarea.widget();
+            // f.render_widget(widget, chunks[1]);
         })
         .unwrap();
 
         // TUI refresh rate
-        thread::sleep(Duration::from_millis(50));
+        let guard = mutex.lock().unwrap();
+        _ = condvar.wait_timeout(guard, Duration::from_millis(50));
     }
 
-    // TODO: Join threads
+    // Join threads. They should wake up and stop ASAP from shared condvar.notify_all() call
     if let Some(backup_thread) = backup_thread {
         backup_thread.join().unwrap();
     }
@@ -144,7 +164,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     dbg!(&buffer);
 
     // Final output for user
-    println!("Saved file to {:?}", config.output_name);
+    println!("Saved file to {:?}", config.get_output_path());
 
     Ok(())
 }

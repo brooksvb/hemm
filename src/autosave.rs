@@ -22,7 +22,9 @@ pub fn start_autosave_thread(
             {
                 // Write buffer to file
                 let mut buffer = buffer.lock().unwrap();
-                buffer.save().unwrap();
+                buffer.save().unwrap_or_else(|_| {
+                    // TODO: notify about save error
+                });
             }
 
             let guard = mutex.lock().unwrap();

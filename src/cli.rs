@@ -7,7 +7,7 @@ use clap::Parser;
 /// Powered by clap crate annotations
 #[derive(Parser, Debug)]
 pub struct Cli {
-    /// Optional output file path
+    /// Optional output file path. If the file exists, it will be opened to resume editing.
     pub path: Option<PathBuf>,
 
     /// Sets a custom config file
