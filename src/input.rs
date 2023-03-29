@@ -47,8 +47,6 @@ pub fn start_input_thread(
                         };
                         if !(hemingway_mode && is_navigation_or_edit) {
                             match key_event.code {
-                                // TODO: handle navigation
-                                // TODO: Implement hemingway mode check
                                 KeyCode::Char(c) => {
                                     buffer.textarea.insert_char(c);
                                 }

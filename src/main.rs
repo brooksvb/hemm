@@ -65,7 +65,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     let mut stdout = io::stdout();
     if !is_raw_mode_enabled()? {
         enable_raw_mode()?;
-        crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture,)?;
+        crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     }
     let backend = CrosstermBackend::new(stdout);
     let mut term = Terminal::new(backend)?;
@@ -107,6 +107,8 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     // FIXME: Cursor style does not change
     crossterm::execute!(term.backend_mut(), SetCursorStyle::SteadyBar).unwrap();
 
+    // TODO: Create layout
+
     // Main render loop
     let mutex = Mutex::new(());
     while running.load(Ordering::SeqCst) {
@@ -118,11 +120,6 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
 
             // TODO: Render message line
             // let chunks = layout.split(f.size());
-            //
-            // if search_height > 0 {
-            //     f.render_widget(self.search.textarea.widget(), chunks[0]);
-            // }
-            //
             // let textarea = &buffer.textarea;
             // let widget = textarea.widget();
             // f.render_widget(widget, chunks[1]);
