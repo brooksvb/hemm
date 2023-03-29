@@ -5,7 +5,10 @@ use std::{
     path::PathBuf,
 };
 
-use tui::{style::Style, widgets::Wrap};
+use tui::{
+    style::Style,
+    widgets::{Block, Borders, Wrap},
+};
 use tui_textarea::TextArea;
 
 use crate::config::Config;
@@ -64,6 +67,8 @@ impl Buffer {
         // Remove default underline style from active line
         textarea.set_cursor_line_style(Style::default());
         textarea.set_wrap(Some(Wrap { trim: false }));
+        let block = Block::default().borders(Borders::ALL);
+        textarea.set_block(block);
         Ok(Self {
             textarea,
             path: config.get_output_path(),

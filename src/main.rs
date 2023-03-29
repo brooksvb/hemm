@@ -26,7 +26,9 @@ use hemm::cli::Cli;
 use hemm::config::Config;
 use hemm::input::start_input_thread;
 use hemm::timer::start_timer_thread;
-use tui::{backend::CrosstermBackend, layout::Rect, Terminal};
+use tui::backend::CrosstermBackend;
+use tui::layout::{Constraint, Direction, Layout};
+use tui::Terminal;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
@@ -108,21 +110,47 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     crossterm::execute!(term.backend_mut(), SetCursorStyle::SteadyBar).unwrap();
 
     // TODO: Create layout
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Min(1),    // TextArea
+                Constraint::Length(1), // Status line
+            ]
+            .as_ref(),
+        );
 
     // Main render loop
     let mutex = Mutex::new(());
     while running.load(Ordering::SeqCst) {
         term.draw(|f| {
+            let chunks = layout.split(f.size());
+            let textarea_layout = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints(
+                    [
+                        Constraint::Length(2),
+                        Constraint::Min(1),    // Main area
+                        Constraint::Length(1), // One less row margin on bottom due to status line
+                    ]
+                    .as_ref(),
+                )
+                .horizontal_margin(4);
+            let textarea_chunk = textarea_layout.split(chunks[0])[1];
+
             let buffer = buffer.lock().unwrap();
             let buffer_widget = buffer.textarea.widget();
-            let rectangle = Rect::new(0, 0, f.size().width, f.size().height);
-            f.render_widget(buffer_widget, rectangle);
+            f.render_widget(buffer_widget, textarea_chunk);
 
+            // let status_line_layout = Layout::default()
+            //     .direction(Direction::Horizontal)
+            //     .constraints(
+            //         [
+            //
+            //         ]
+            //     );
             // TODO: Render message line
-            // let chunks = layout.split(f.size());
-            // let textarea = &buffer.textarea;
-            // let widget = textarea.widget();
-            // f.render_widget(widget, chunks[1]);
+            // TODO: Render timer
         })
         .unwrap();
 
