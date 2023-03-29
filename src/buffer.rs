@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use tui::style::Style;
+use tui::{style::Style, widgets::Wrap};
 use tui_textarea::TextArea;
 
 use crate::config::Config;
@@ -48,6 +48,7 @@ impl Buffer {
         let mut textarea = if let Ok(md) = path.metadata() {
             if md.is_file() {
                 let contents = fs::read_to_string(path.clone())?;
+                // FIXME: When resuming file, move cursor to end
                 TextArea::from(contents.lines())
             } else {
                 // Path exists but is not a file
@@ -62,6 +63,7 @@ impl Buffer {
         textarea.set_hard_tab_indent(config.use_hard_indent);
         // Remove default underline style from active line
         textarea.set_cursor_line_style(Style::default());
+        textarea.set_wrap(Some(Wrap { trim: false }));
         Ok(Self {
             textarea,
             path: config.get_output_path(),
