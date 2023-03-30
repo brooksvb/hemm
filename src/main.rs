@@ -28,6 +28,8 @@ use hemm::input::start_input_thread;
 use hemm::timer::start_timer_thread;
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Direction, Layout};
+use tui::text::Span;
+use tui::widgets::Paragraph;
 use tui::Terminal;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -129,7 +131,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
                 .direction(Direction::Vertical)
                 .constraints(
                     [
-                        Constraint::Length(2),
+                        Constraint::Length(2), // Margin
                         Constraint::Min(1),    // Main area
                         Constraint::Length(1), // One less row margin on bottom due to status line
                     ]
@@ -138,18 +140,19 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
                 .horizontal_margin(4);
             let textarea_chunk = textarea_layout.split(chunks[0])[1];
 
-            let buffer = buffer.lock().unwrap();
+            let mut buffer = buffer.lock().unwrap();
             let buffer_widget = buffer.textarea.widget();
             f.render_widget(buffer_widget, textarea_chunk);
 
-            // let status_line_layout = Layout::default()
-            //     .direction(Direction::Horizontal)
-            //     .constraints(
-            //         [
-            //
-            //         ]
-            //     );
-            // TODO: Render message line
+            let status_line_layout = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Min(1), Constraint::Max(1 + 4 + 1)]);
+            let status_chunks = status_line_layout.split(chunks[1]);
+            let message = match buffer.get_message() {
+                Some(message) => message,
+                None => "",
+            };
+            f.render_widget(Paragraph::new(Span::raw(message)), status_chunks[0]);
             // TODO: Render timer
         })
         .unwrap();

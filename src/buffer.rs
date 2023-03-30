@@ -3,6 +3,7 @@ use std::{
     fs,
     io::{self, Write},
     path::PathBuf,
+    time::{Duration, Instant},
 };
 
 use tui::{
@@ -31,6 +32,10 @@ pub struct Buffer {
     modified: bool,
     /// Whether or not file existed at beginning of program start
     file_already_existed: bool,
+    /// A temporary message for the user
+    message: Option<String>,
+    /// Instant of last message, to check if expired
+    message_instant: Option<Instant>,
 }
 
 impl Debug for Buffer {
@@ -75,6 +80,8 @@ impl Buffer {
             back_path: config.get_bak_path(),
             modified: false,
             file_already_existed,
+            message: None,
+            message_instant: None,
         })
     }
 
@@ -88,6 +95,45 @@ impl Buffer {
     pub fn save(&mut self) -> io::Result<()> {
         save_buffer(&self, &self.path)?;
         Ok(())
+    }
+
+    /// Get message if valid
+    /// Side effect: Automatically clear message if invalid
+    pub fn get_message(&mut self) -> Option<&String> {
+        if !self.is_message_valid() {
+            return None;
+        }
+        self.message.as_ref()
+    }
+
+    pub fn set_message(&mut self, message: Option<String>) {
+        self.message = message;
+        self.message_instant = Some(Instant::now());
+    }
+
+    /// Check if message is still valid, clear if not and return None
+    fn is_message_valid(&mut self) -> bool {
+        if self.message == None {
+            return false;
+        }
+        // Message expires after this length
+        static EXPIRE_DUR: Duration = Duration::from_secs(3);
+        match self.message_instant {
+            Some(instant) => {
+                if instant.elapsed() >= EXPIRE_DUR {
+                    self.clear_message();
+                    false
+                } else {
+                    true
+                }
+            }
+            None => false,
+        }
+    }
+
+    fn clear_message(&mut self) {
+        self.message = None;
+        self.message_instant = None;
     }
 }
 
