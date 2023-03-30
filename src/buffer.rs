@@ -28,7 +28,6 @@ pub struct Buffer {
     /// Path to backup file
     back_path: PathBuf,
     /// Modified since last save
-    // FIXME: modified is not updated
     modified: bool,
     /// Whether or not file existed at beginning of program start
     file_already_existed: bool,
@@ -90,18 +89,35 @@ impl Buffer {
 
     /// Save to backup filepath
     pub fn save_backup(&mut self) -> io::Result<()> {
-        save_buffer(&self, &self.back_path)?;
+        // Don't bother checking modified because we want to make sure this runs
+        self.write_file(&self.back_path)?;
+        self.clear_modified();
         Ok(())
     }
 
     /// Save to final filepath
     pub fn save(&mut self) -> io::Result<()> {
-        save_buffer(&self, &self.path)?;
+        if !self.modified {
+            return Ok(());
+        }
+        self.write_file(&self.path)?;
+        // self.set_message(Some(String::from("Backup saved")));
+        self.clear_modified();
+        Ok(())
+    }
+
+    fn write_file(&self, path: &PathBuf) -> io::Result<()> {
+        // TODO: Write-Failsafe: If any error occurs, attempt to write to .bak file
+        let mut f = fs::File::create(path)?;
+        for line in self.textarea.lines() {
+            f.write_all(line.as_bytes())?;
+            f.write_all(b"\n")?;
+        }
         Ok(())
     }
 
     /// Get message if valid
-    /// Side effect: Automatically clear message if invalid
+    /// Side effect: Automatically clear message if invalid, return None
     pub fn get_message(&mut self) -> Option<&String> {
         if !self.is_message_valid() {
             return None;
@@ -109,12 +125,13 @@ impl Buffer {
         self.message.as_ref()
     }
 
+    /// Set message
     pub fn set_message(&mut self, message: Option<String>) {
         self.message = message;
         self.message_instant = Some(Instant::now());
     }
 
-    /// Check if message is still valid, clear if not and return None
+    /// Check if message is still valid, clear if not
     fn is_message_valid(&mut self) -> bool {
         if self.message == None {
             return false;
@@ -138,18 +155,19 @@ impl Buffer {
         self.message = None;
         self.message_instant = None;
     }
-}
 
-fn save_buffer(buffer: &Buffer, path: &PathBuf) -> io::Result<()> {
-    // FIXME: modified is not updated
-    // if !self.modified {
-    //     return Ok(());
-    //
-    // TODO: Write-Failsafe: If any error occurs, attempt to write to .bak file
-    let mut f = fs::File::create(path)?;
-    for line in buffer.textarea.lines() {
-        f.write_all(line.as_bytes())?;
-        f.write_all(b"\n")?;
+    /// Get modified value
+    pub fn modified(&self) -> bool {
+        self.modified
     }
-    Ok(())
+
+    /// Set modified to true
+    pub fn mark_modified(&mut self) {
+        self.modified = true
+    }
+
+    /// Reset modified to false
+    pub fn clear_modified(&mut self) {
+        self.modified = false
+    }
 }
