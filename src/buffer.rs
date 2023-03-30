@@ -56,8 +56,11 @@ impl Buffer {
         let mut textarea = if let Ok(md) = path.metadata() {
             if md.is_file() {
                 let contents = fs::read_to_string(path.clone())?;
-                // FIXME: When resuming file, move cursor to end
-                TextArea::from(contents.lines())
+                let mut textarea = TextArea::from(contents.lines());
+                // When resuming file, move cursor to end
+                textarea.move_cursor(tui_textarea::CursorMove::Bottom);
+                textarea.move_cursor(tui_textarea::CursorMove::End);
+                textarea
             } else {
                 // Path exists but is not a file
                 return Err(io::Error::new(
