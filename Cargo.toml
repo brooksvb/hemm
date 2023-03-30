@@ -11,10 +11,12 @@ confy = "0.5.1"
 crossterm = "0.26.1"
 ctrlc = "3.2.5"
 tui = "0.19.0"
-# tui-textarea = "0.2.0"
-# FIXME: Fix crate once text wrap feat is merged
-tui-textarea = { version = "0.2.0", git = "https://github.com/brooksvb/tui-textarea_text-wrap.git", branch = "main" }
+tui-textarea = "0.2.0"
 
 [[bin]]
 name = "hemm"
 path = "src/main.rs"
+
+[patch.crates-io]
+# FIXME: Remove patch once text wrap feat is merged
+tui-textarea = { git = "https://github.com/brooksvb/tui-textarea_text-wrap.git", branch = "main" }
