@@ -76,6 +76,9 @@ pub fn start_input_thread(
                                 KeyCode::Enter => {
                                     buffer.textarea.insert_newline();
                                 }
+                                KeyCode::Tab => {
+                                    buffer.textarea.insert_tab();
+                                }
                                 KeyCode::Esc => {
                                     // Exit the program
                                     running_handle.store(false, Ordering::SeqCst);
