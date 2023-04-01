@@ -19,8 +19,8 @@ use crate::config::Config;
 
 /// A Buffer contains the text of the file being actively written
 pub struct Buffer {
-    // Using static lifetime to avoid errors when referencing in other threads
-    // Not 100% understanding the full reasons yet or a better alternative solution
+    // As far as I understand, this *must* be static in order to share with multiple threads
+    // because the compiler cannot know when a thread will stop referencing it
     /// TextArea tui widget
     pub textarea: TextArea<'static>,
     /// Path to file output

@@ -36,6 +36,7 @@ pub struct Cli {
     #[arg(long = "interval", value_name = "INTERVAL")]
     pub autosave_interval: Option<u32>,
 
+    // TODO: Custom clap value_parser for timer duration
     /// Enable timer display
     #[arg(short, long)]
     pub timer: Option<bool>,
