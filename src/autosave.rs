@@ -1,3 +1,4 @@
+use std::io::{stderr, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
@@ -22,8 +23,28 @@ pub fn start_autosave_thread(
             {
                 // Write buffer to file
                 let mut buffer = buffer.lock().unwrap();
-                buffer.save().unwrap_or_else(|_| {
+                buffer.save().unwrap_or_else(|err| {
                     // TODO: notify about save error
+                    buffer
+                        .set_message(Some(String::from("Error when saving; saving to .bak file")));
+                    // TODO: Set error marker or save message for user review after exiting program
+                    // tell them that backup file was saved
+                    stderr()
+                        .write_all(
+                            format!("Encountered error when saving file: {}", err).as_bytes(),
+                        )
+                        .unwrap_or(());
+                    buffer.save_backup().unwrap_or_else(|err| {
+                        stderr()
+                            .write_all(
+                                format!(
+                                    "WARN: Encountered error when attemping to save backup: {}",
+                                    err
+                                )
+                                .as_bytes(),
+                            )
+                            .unwrap_or(());
+                    });
                 });
             }
 
