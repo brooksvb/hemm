@@ -50,7 +50,9 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     let buffer = Arc::new(Mutex::new(Buffer::new(config).unwrap()));
     // When this becomes false, all threads and program should exit
     let running = Arc::new(AtomicBool::new(true));
+    // FIXME: Replace condvar with channels because there is no shared data
     let condvar = Arc::new(Condvar::new());
+    let condmut = Arc::new(Mutex::new(()));
     let elapsed_time = Arc::new(Mutex::new(Duration::default()));
 
     // Set up SIGINT handler
@@ -81,6 +83,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
             Arc::clone(&buffer),
             Arc::clone(&running),
             Arc::clone(&condvar),
+            Arc::clone(&condmut),
             &config,
         ));
     } else {
@@ -94,6 +97,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
             Arc::clone(&elapsed_time),
             Arc::clone(&running),
             Arc::clone(&condvar),
+            Arc::clone(&condmut),
             &config,
         ));
     } else {
@@ -123,7 +127,6 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
         );
 
     // Main render loop
-    let mutex = Mutex::new(());
     while running.load(Ordering::SeqCst) {
         term.draw(|f| {
             let chunks = layout.split(f.size());
@@ -158,7 +161,7 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
         .unwrap();
 
         // TUI refresh rate
-        let guard = mutex.lock().unwrap();
+        let guard = condmut.lock().unwrap();
         _ = condvar.wait_timeout(guard, Duration::from_millis(50));
     }
 

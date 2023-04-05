@@ -13,12 +13,12 @@ pub fn start_autosave_thread(
     buffer: Arc<Mutex<Buffer>>,
     running_handle: Arc<AtomicBool>,
     condvar: Arc<Condvar>,
+    condmut: Arc<Mutex<()>>,
     config: &Config,
 ) -> JoinHandle<()> {
     let autosave_interval = config.autosave_interval.clone();
     thread::spawn(move || {
         let autosave_interval = Duration::from_secs(autosave_interval.into());
-        let mutex = Mutex::new(());
         while running_handle.load(Ordering::SeqCst) {
             {
                 // Write buffer to file
@@ -48,7 +48,7 @@ pub fn start_autosave_thread(
                 });
             }
 
-            let guard = mutex.lock().unwrap();
+            let guard = condmut.lock().unwrap();
             let _ = condvar.wait_timeout(guard, autosave_interval).unwrap();
         }
     })

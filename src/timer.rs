@@ -9,11 +9,11 @@ pub fn start_timer_thread(
     elapsed_time_handle: Arc<Mutex<Duration>>,
     running_handle: Arc<AtomicBool>,
     condvar: Arc<Condvar>,
+    condmut: Arc<Mutex<()>>,
     _config: &Config,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let start_time = Instant::now();
-        let mutex = Mutex::new(());
         let timer_interval = Duration::from_millis(100);
         while running_handle.load(Ordering::SeqCst) {
             let current_elapsed = Instant::now().duration_since(start_time);
@@ -23,7 +23,7 @@ pub fn start_timer_thread(
 
             // Sleep for a short duration before updating the elapsed time again
             // Condvar allows instant wakeup on signal
-            let guard = mutex.lock().unwrap();
+            let guard = condmut.lock().unwrap();
             let _ = condvar.wait_timeout(guard, timer_interval).unwrap();
         }
     })
