@@ -38,7 +38,7 @@ pub fn start_autosave_thread(
                         stderr()
                             .write_all(
                                 format!(
-                                    "WARN: Encountered error when attemping to save backup: {}",
+                                    "CRITICAL: Encountered error when attemping to save backup: {}",
                                     err
                                 )
                                 .as_bytes(),

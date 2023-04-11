@@ -73,7 +73,7 @@ impl Buffer {
         textarea.set_hard_tab_indent(config.use_hard_indent);
         // Remove default underline style from active line
         textarea.set_cursor_line_style(Style::default());
-        textarea.set_wrap(Some(Wrap { trim: false }));
+        textarea.set_wrap(true);
         let block = Block::default().borders(Borders::ALL);
         textarea.set_block(block);
         Ok(Self {
