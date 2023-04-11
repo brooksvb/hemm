@@ -55,6 +55,14 @@ correct your mistakes all at once.
     -   [ ] ctrl+enter - Open new line above current line
 -   [ ] Copy-paste functionality (terminal shortcuts shift+ctrl+c|v should work)
 
+#### Config
+
+-   [ ] Load user configuration file to set default options
+-   [ ] Change margin size
+-   [ ] Optionally dim inactive line of text
+-   [ ] Optionally underline active line of text
+-   [ ] Define config "presets" for easier re-use (eg. --preset=morning, --preset=book)
+
 ### Out-of-scope Features
 
 These features are out-of-scope for the goals of Hemm and will not be implemented. You should seek these
@@ -64,14 +72,6 @@ features in a different program if you need them.
 -   Writing suggestions
 -   Syntax highlighting
 -   Markdown rendering or rendering of any other format
-
-#### Config
-
--   [ ] Load user configuration file to set default options
--   [ ] Change margin size
--   [ ] Optionally dim inactive line of text
--   [ ] Optionally underline active line of text
--   [ ] Define config "presets" for easier re-use (eg. --preset=morning, --preset=book)
 
 ## Usage
 
