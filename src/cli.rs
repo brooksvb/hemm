@@ -8,7 +8,7 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 pub struct Cli {
     /// Optional output file path. If the file exists, it will be opened to resume editing.
-    pub path: Option<PathBuf>,
+    pub path: PathBuf,
 
     /// Sets a custom config file
     #[arg(short, long, value_name = "FILE")]

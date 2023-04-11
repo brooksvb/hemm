@@ -9,11 +9,7 @@ pub struct Config {
 
     /// Output name for file
     /// If None, output path will be generated from pattern
-    output_name: Option<PathBuf>,
-
-    /// Pattern to generate output name
-    /// User may configure the default
-    pub output_pattern: String,
+    output_name: PathBuf,
 
     /// Directory to place output file
     pub output_dir: PathBuf,
@@ -43,8 +39,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             writing_mode: WritingMode::Regular,
-            output_name: Some("out.txt".into()),
-            output_pattern: "{date}.txt".into(),
+            output_name: "output.txt".into(),
             output_dir: "./".into(),
             use_autosave: true,
             autosave_interval: 15,
@@ -92,21 +87,14 @@ impl Config {
 
     /// Return output path based on config
     pub fn get_output_path(&self) -> PathBuf {
-        if let Some(output_name) = self.output_name.clone() {
-            // If absolute file path is given, it doesn't matter what directory is set to
-            if output_name.is_absolute() {
-                return output_name;
-            }
-            // Merge directory with output name
-            let mut path = self.output_dir.clone();
-            path.push(output_name);
-            return path;
+        // If absolute file path is given, it doesn't matter what directory is set to
+        if self.output_name.is_absolute() {
+            return self.output_name;
         }
-
-        let resolved_pattern = resolve_pattern(&self.output_pattern).unwrap();
-        let mut output_path = self.output_dir.clone();
-        output_path.push(PathBuf::from(resolved_pattern));
-        output_path
+        // Merge directory with output name
+        let mut path = self.output_dir.clone();
+        path.push(self.output_name);
+        return path;
     }
 
     /// Return path of backup file
