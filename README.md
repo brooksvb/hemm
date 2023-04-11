@@ -45,6 +45,7 @@ correct your mistakes all at once.
 ### Planned Features
 
 -   [ ] Failsafe mechanism to save latest file version to backup if error occurs
+    -   [ ] Error recovery screen to allow user to retry save, or copy text to clipboard
 -   [ ] Set an optional timer to remind you when your writing session is done
 -   [ ] Pipe output to another program for more flexible workflow and scripting
 -   [ ] Integrated Pomodoro timer for extended writing sessions with breaks (using [porsmo](https://docs.rs/crate/porsmo/latest))

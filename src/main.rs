@@ -160,6 +160,9 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
         })
         .unwrap();
 
+        // TODO: Check for errors from other threads
+        // TODO: File error recovery screen
+
         // TUI refresh rate
         let guard = condmut.lock().unwrap();
         _ = condvar.wait_timeout(guard, Duration::from_millis(50));
