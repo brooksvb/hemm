@@ -1,14 +1,19 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+use serde::{Deserialize, Serialize};
 
 /// Struct representing options and arguments that user inputs to the program.
 ///
 /// Powered by clap crate annotations
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Serialize, Deserialize)]
 pub struct Cli {
-    /// Optional output file path. If the file exists, it will be opened to resume editing.
-    pub path: PathBuf,
+    #[serde(skip_serializing)]
+    #[arg(
+        required = true,
+        help = "Output file path. If the file exists, it will be opened to resume editing."
+    )]
+    pub path: Option<PathBuf>,
 
     /// Sets a custom config file
     #[arg(short, long, value_name = "FILE")]

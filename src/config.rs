@@ -75,7 +75,7 @@ impl Config {
             } else {
                 default.writing_mode
             },
-            output_name: cli.path.clone(),
+            output_name: cli.path.clone().unwrap(),
             output_dir: cli.directory.clone().unwrap_or(default.output_dir),
             use_autosave: cli.autosave.unwrap_or(default.use_autosave),
             autosave_interval: cli.autosave_interval.unwrap_or(default.autosave_interval),
@@ -89,11 +89,11 @@ impl Config {
     pub fn get_output_path(&self) -> PathBuf {
         // If absolute file path is given, it doesn't matter what directory is set to
         if self.output_name.is_absolute() {
-            return self.output_name;
+            return self.output_name.clone();
         }
         // Merge directory with output name
         let mut path = self.output_dir.clone();
-        path.push(self.output_name);
+        path.push(self.output_name.clone());
         return path;
     }
 
@@ -106,11 +106,6 @@ impl Config {
         let bak_file_name = file_name.to_string_lossy().to_string() + ".bak";
         parent_dir.join(bak_file_name)
     }
-}
-
-fn resolve_pattern(pattern: &String) -> Result<String, ConfigError> {
-    // TODO: Resolve pattern
-    Ok("out.txt".into())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
