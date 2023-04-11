@@ -8,7 +8,7 @@ use std::{
 
 use tui::{
     style::Style,
-    widgets::{Block, Borders, Wrap},
+    widgets::{Block, Borders},
 };
 use tui_textarea::TextArea;
 
