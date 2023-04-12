@@ -5,7 +5,6 @@
 //! ## Usage
 //! `hemm <output_filename>`
 //! `hemm -h`
-
 use std::error::Error;
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -23,7 +22,7 @@ use crossterm::terminal::{
 use hemm::autosave::start_autosave_thread;
 use hemm::buffer::Buffer;
 use hemm::cli::Cli;
-use hemm::config::Config;
+use hemm::config::{load_user_config, Config};
 use hemm::input::start_input_thread;
 use hemm::timer::start_timer_thread;
 use tui::backend::CrosstermBackend;
@@ -36,8 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     dbg!(&cli);
 
-    // Get Config
-    let config = Config::new(&cli);
+    let config = load_user_config(cli)?;
     dbg!(&config);
 
     run(&config)?;

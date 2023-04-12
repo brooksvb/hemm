@@ -15,17 +15,14 @@ pub struct Cli {
     )]
     pub path: Option<PathBuf>,
 
-    /// Sets a custom config file
+    /// Sets a custom config filepath
+    #[serde(skip_serializing)]
     #[arg(short, long, value_name = "FILE")]
     pub config: Option<PathBuf>,
 
     /// Use hemingway mode (no backspace, default: false)
     #[arg(long)]
     pub hemingway: Option<bool>,
-
-    /// Pattern to use when generating output name
-    #[arg(short, long)]
-    pub output_pattern: Option<String>,
 
     /// Output directory for file if full output path not given
     /// default: ./
@@ -49,4 +46,30 @@ pub struct Cli {
     /// Use '\t' for tab keypress
     #[arg(short, long)]
     pub use_hard_indent: Option<bool>,
+}
+
+macro_rules! merge_fields {
+    ($self_:ident, $other:expr, $($field:ident),+ $(,)?) => {
+        $(
+            $self_.$field = $other.$field.or_else(|| $self_.$field.take());
+        )+
+    };
+}
+
+impl Cli {
+    /// Values from other Cli overwrite values from self
+    pub fn merge(&mut self, other: Cli) {
+        merge_fields!(
+            self,
+            other,
+            path,
+            config,
+            hemingway,
+            directory,
+            autosave,
+            autosave_interval,
+            timer,
+            use_hard_indent,
+        );
+    }
 }

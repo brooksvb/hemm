@@ -1,4 +1,6 @@
-use std::path::PathBuf;
+use dirs::config_dir;
+use std::{fs::File, io::Read, path::PathBuf};
+use thiserror::Error;
 
 use crate::cli::Cli;
 
@@ -54,18 +56,8 @@ impl Config {
     pub fn new(cli: &Cli) -> Config {
         let default = Self::default();
 
-        // First, a user config file is checked for config values.
-        // TODO: Check for config file. Use confy
-        // Use XDG_CONFIG_HOME
-        let default_config_path = PathBuf::from("$XDG_CONFIG_HOME/hemm/hemm.conf");
-        let config_path = if let Some(config) = cli.config.clone() {
-            config
-        } else {
-            default_config_path
-        };
+        // TODO: Verify output directory exists and is writable
 
-        // Second, any command-line arguments override previously found values.
-        // TODO: Last, any config values that were not found in either, will be set to defaults
         Config {
             writing_mode: if let Some(writing_mode) = cli.hemingway {
                 match writing_mode {
@@ -108,15 +100,68 @@ impl Config {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ConfigError {
-    message: String,
+#[derive(Error, Debug)]
+pub enum ConfigErrorType {
+    #[error("Invalid config path")]
+    InvalidConfigPath,
+
+    #[error("Failed to read config file")]
+    FileReadError,
+
+    #[error("Failed to parse config file")]
+    DeserializationError,
+}
+
+#[derive(Debug)]
+pub struct ConfigError {
+    pub error_type: ConfigErrorType,
+    pub path: PathBuf,
 }
 
 impl std::fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.message)
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.error_type, self.path.to_string_lossy())
     }
 }
 
 impl std::error::Error for ConfigError {}
+
+/// Consume cli, check for user config files, merge them and return a Config
+pub fn load_user_config(mut cli: Cli) -> Result<Config, ConfigError> {
+    // Check config locations
+    let config_dir = config_dir().expect("Failed to get configuration directory");
+    let default_config_path = config_dir.join("hemm").join("hemm.conf");
+    let config_path = cli.config.clone().unwrap_or(default_config_path);
+
+    if !config_path.is_file() {
+        // Error for invalid config path only if option was specified
+        if let Some(ref config_path) = cli.config {
+            return Err(ConfigError {
+                error_type: ConfigErrorType::InvalidConfigPath,
+                path: config_path.clone(),
+            });
+        }
+        // Return config from cli options if no config file
+        return Ok(Config::new(&cli));
+    }
+
+    let mut config_file = File::open(&config_path).map_err(|_| ConfigError {
+        error_type: ConfigErrorType::FileReadError,
+        path: config_path.clone(),
+    })?;
+    let mut config_str = String::new();
+    config_file
+        .read_to_string(&mut config_str)
+        .map_err(|_| ConfigError {
+            error_type: ConfigErrorType::FileReadError,
+            path: config_path.clone(),
+        })?;
+
+    let config_cli: Cli = serde_yaml::from_str(&config_str).map_err(|_| ConfigError {
+        error_type: ConfigErrorType::DeserializationError,
+        path: config_path.clone(),
+    })?;
+    cli.merge(config_cli);
+
+    Ok(Config::new(&cli))
+}
