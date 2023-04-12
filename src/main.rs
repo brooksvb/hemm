@@ -113,7 +113,6 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     // FIXME: Cursor style does not change
     crossterm::execute!(term.backend_mut(), SetCursorStyle::SteadyBar).unwrap();
 
-    // TODO: Create layout
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -179,9 +178,6 @@ fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     let mut buffer = buffer.lock().unwrap();
     dbg!(&buffer);
     buffer.save()?;
-
-    // Cleanup bak files
-    // TODO
 
     // Terminal cleanup
     term.show_cursor().unwrap();

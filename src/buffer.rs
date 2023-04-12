@@ -107,7 +107,6 @@ impl Buffer {
     }
 
     fn write_file(&self, path: &PathBuf) -> io::Result<()> {
-        // TODO: Write-Failsafe: If any error occurs, attempt to write to .bak file
         let mut f = fs::File::create(path)?;
         for line in self.textarea.lines() {
             f.write_all(line.as_bytes())?;
