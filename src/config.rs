@@ -53,12 +53,10 @@ impl Default for Config {
 
 impl Config {
     /// Create Config from arguments and user config file
-    pub fn new(cli: &Cli) -> Config {
+    pub fn new(cli: &Cli) -> Result<Config, ConfigError> {
         let default = Self::default();
 
-        // TODO: Verify output directory exists and is writable
-
-        Config {
+        let config = Config {
             writing_mode: if let Some(writing_mode) = cli.hemingway {
                 match writing_mode {
                     true => WritingMode::Hemingway,
@@ -74,7 +72,42 @@ impl Config {
             show_timer: cli.timer.unwrap_or(default.show_timer),
             use_hard_indent: cli.use_hard_indent.unwrap_or(default.use_hard_indent),
             ..default
+        };
+
+        // Verify output directory exists and is writable
+        let metadata = std::fs::metadata(&config.output_dir).map_err(|_| ConfigError {
+            error_type: ConfigErrorType::FileReadError,
+            path: config.output_dir.clone(),
+        })?;
+        if !metadata.is_dir() {
+            return Err(ConfigError {
+                error_type: ConfigErrorType::OutputDirDoesNotExist,
+                path: config.output_dir.clone(),
+            });
         }
+        if metadata.permissions().readonly() {
+            return Err(ConfigError {
+                error_type: ConfigErrorType::OutputPathNotWritable,
+                path: config.output_dir.clone(),
+            });
+        }
+
+        // Verify output file is writable if it exists
+        let output_path = config.get_output_path();
+        if output_path.is_file() {
+            let metadata = std::fs::metadata(&output_path).map_err(|_| ConfigError {
+                error_type: ConfigErrorType::FileReadError,
+                path: output_path.clone(),
+            })?;
+            if metadata.permissions().readonly() {
+                return Err(ConfigError {
+                    error_type: ConfigErrorType::OutputPathNotWritable,
+                    path: output_path,
+                });
+            }
+        }
+
+        Ok(config)
     }
 
     /// Return output path based on config
@@ -110,6 +143,12 @@ pub enum ConfigErrorType {
 
     #[error("Failed to parse config file")]
     DeserializationError,
+
+    #[error("Output directory does not exist")]
+    OutputDirDoesNotExist,
+
+    #[error("Output path is not writable")]
+    OutputPathNotWritable,
 }
 
 #[derive(Debug)]
@@ -128,7 +167,6 @@ impl std::error::Error for ConfigError {}
 
 /// Consume cli, check for user config files, merge them and return a Config
 pub fn load_user_config(mut cli: Cli) -> Result<Config, ConfigError> {
-    // Check config locations
     let config_dir = config_dir().expect("Failed to get configuration directory");
     let default_config_path = config_dir.join("hemm").join("hemm.conf");
     let config_path = cli.config.clone().unwrap_or(default_config_path);
@@ -142,7 +180,7 @@ pub fn load_user_config(mut cli: Cli) -> Result<Config, ConfigError> {
             });
         }
         // Return config from cli options if no config file
-        return Ok(Config::new(&cli));
+        return Ok(Config::new(&cli)?);
     }
 
     let mut config_file = File::open(&config_path).map_err(|_| ConfigError {
@@ -163,5 +201,5 @@ pub fn load_user_config(mut cli: Cli) -> Result<Config, ConfigError> {
     })?;
     cli.merge(config_cli);
 
-    Ok(Config::new(&cli))
+    Ok(Config::new(&cli)?)
 }
